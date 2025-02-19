@@ -1,0 +1,33 @@
+[project]
+name = "patched-font-transformer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fonttools>=4.56.0",
+    "jupyter>=1.1.1",
+    "lightning>=2.5.0.post0",
+    "matplotlib>=3.10.0",
+    "scikit-learn>=1.6.1",
+    "seaborn>=0.13.2",
+    "tensorboard>=2.19.0",
+    "torch==2.5.1+cu124",
+    "torch-tb-profiler>=0.4.3",
+]
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+extra-index-url = [
+    "https://pypi.org/simple",
+    "https://download.pytorch.org/whl/cu124",
+]
+
+[tool.ruff]
+unsafe-fixes = true
+line-length = 88
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D203", "D213", "EXE002", "N812", "PD011", "PLR0913", "T201"]
