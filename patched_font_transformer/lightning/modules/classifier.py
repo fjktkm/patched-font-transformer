@@ -18,7 +18,7 @@ from sklearn.metrics import (
 from torch import Tensor
 
 from patched_font_transformer.models import FontClassifier
-from patched_font_transformer.modules.mask import classification_mask, create_mask
+from patched_font_transformer.modules.mask import classification_mask
 from patched_font_transformer.modules.scheduler import WarmupDecayLR
 
 
@@ -75,14 +75,7 @@ class ClassifierLM(pl.LightningModule):
         src: tuple[Tensor, Tensor],
     ) -> Tensor:
         """Perform a forward pass through the FontClassifier."""
-        if self.model == "t3":
-            src_mask, src_padding_mask = create_mask(
-                glyph_tensor=src,
-                causal=False,
-                padding_token=-1,
-            )
-        else:
-            src_mask, src_padding_mask = classification_mask(src)
+        src_mask, src_padding_mask = classification_mask(src)
 
         return self.model(
             src=src,
