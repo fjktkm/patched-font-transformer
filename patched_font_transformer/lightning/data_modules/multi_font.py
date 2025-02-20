@@ -4,7 +4,9 @@ from fontTools.ttLib import TTFont
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 
-from patched_font_transformer.modules.collate_fn import MultiFontPostScriptCollate
+from patched_font_transformer.modules.collate_fn import (
+    MultiFontPatchedPostScriptCollate,
+)
 from patched_font_transformer.torchfont.datasets.multi_font import MultiFontDataset
 from patched_font_transformer.torchfont.transforms import (
     Compose,
@@ -12,6 +14,7 @@ from patched_font_transformer.torchfont.transforms import (
     NormalizeSegment,
     PostScriptSegmentToTensor,
     QuadToCubic,
+    SplitIntoPatches,
 )
 
 
@@ -23,17 +26,18 @@ class MultiFontLDM(LightningDataModule):
         fonts: list[TTFont],
         *,
         batch_size: int = 32,
+        patch_size: int = 4,
         num_workers: int = 4,
         codepoints: list[int] | None = None,
         split_ratios: tuple[float, float, float] = (0.8, 0.1, 0.1),
         seed: int | None = None,
-        pad_size: int | None = None,
     ) -> None:
         """Initialize the data module.
 
         Args:
             fonts: List of fonts to include in the dataset.
             batch_size: Batch size for the dataloaders.
+            patch_size: Patch size for splitting the glyphs.
             num_workers: Number of workers for data loading.
             codepoints: List of codepoints to include in the dataset.
             split_ratios: Ratios for splitting the dataset (train, valid, test).
@@ -45,10 +49,10 @@ class MultiFontLDM(LightningDataModule):
         self.fonts = fonts
         self.num_workers = num_workers
         self.batch_size = batch_size
+        self.patch_size = patch_size
         self.codepoints = codepoints
         self.split_ratios = split_ratios
         self.seed = seed
-        self.pad_size = pad_size
 
     def setup(self, stage: str | None = None) -> None:  # noqa: ARG002
         """Set up datasets for train, val, and test splits."""
@@ -58,6 +62,7 @@ class MultiFontLDM(LightningDataModule):
                 NormalizeSegment(),
                 QuadToCubic(),
                 PostScriptSegmentToTensor("zeros"),
+                SplitIntoPatches(patch_size=self.patch_size),
             ],
         )
 
@@ -86,7 +91,7 @@ class MultiFontLDM(LightningDataModule):
             transform=transform,
         )
 
-        self.collate_fn = MultiFontPostScriptCollate(pad_size=self.pad_size)
+        self.collate_fn = MultiFontPatchedPostScriptCollate(patch_len=self.patch_size)
 
     def train_dataloader(self) -> DataLoader:
         """Return the train dataloader."""
