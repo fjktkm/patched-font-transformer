@@ -247,6 +247,71 @@ def postscript_segment_to_tensor(
     return command_type_tensor, args_tensor
 
 
+def split_into_patches(
+    tensor: tuple[Tensor, Tensor],
+    patch_len: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Split command sequences and arguments into patches of length `patch_len`.
+
+    Args:
+        tensor: A tuple of two tensors:
+            - Command tensor of shape [seq_len]
+            - Argument tensor of shape [seq_len, coord_dim] (coord_dim is always 6)
+        patch_len (int): Length of each patch.
+
+    Returns:
+        Tuple[Tensor, Tensor]:
+            - Command tensor of shape [num_patches, patch_len]
+            - Argument tensor of shape [num_patches, patch_len, coord_dim].
+
+    """
+    command_type_tensor, args_tensor = tensor
+    seq_len, coord_dim = args_tensor.shape
+
+    pad_size = (patch_len - seq_len % patch_len) % patch_len
+
+    command_type_tensor = torch.nn.functional.pad(
+        command_type_tensor,
+        (0, pad_size),
+        value=POSTSCRIPT_COMMAND_TYPE_TO_NUM["<pad>"],
+    )
+    args_tensor = torch.nn.functional.pad(args_tensor, (0, 0, 0, pad_size), value=-1)
+
+    num_patches = (seq_len + pad_size) // patch_len
+    padded_commands = command_type_tensor.view(num_patches, patch_len)
+    padded_args = args_tensor.view(num_patches, patch_len, coord_dim)
+
+    return padded_commands, padded_args
+
+
+def merge_patches(
+    patched_tensor: tuple[Tensor, Tensor],
+) -> tuple[Tensor, Tensor]:
+    """Merge patched command sequences and arguments back to the original shape.
+
+    Args:
+        patched_tensor: A tuple of two tensors:
+            - Command tensor of shape [num_patches, patch_len]
+            - Argument tensor of shape [num_patches, patch_len, coord_dim]
+
+    Returns:
+        Tuple[Tensor, Tensor]:
+            - Command tensor of shape [seq_len]
+            - Argument tensor of shape [seq_len, coord_dim]
+
+    """
+    patched_commands, patched_args = patched_tensor
+
+    merged_commands = patched_commands.view(-1)
+    merged_args = patched_args.view(-1, 6)
+
+    valid_indices = merged_commands != POSTSCRIPT_COMMAND_TYPE_TO_NUM["<pad>"]
+    merged_commands = merged_commands[valid_indices]
+    merged_args = merged_args[valid_indices]
+
+    return merged_commands, merged_args
+
+
 def tensor_to_segment(tensor: tuple[Tensor, Tensor]) -> AtomicPostScriptOutline:
     """Convert separate tensors back to a glyph path.
 

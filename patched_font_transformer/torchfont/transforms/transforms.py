@@ -99,6 +99,42 @@ class PostScriptSegmentToTensor:
         return f"{self.__class__.__name__}(method='{self.method}')"
 
 
+class SplitIntoPatches:
+    """Split the tensor into patches."""
+
+    def __init__(self, patch_size: int) -> None:
+        """Initialize the transform."""
+        self.patch_size = patch_size
+
+    def __call__(
+        self,
+        tensor: tuple[Tensor, Tensor],
+        _: TTFont,
+    ) -> tuple[Tensor, Tensor]:
+        """Split the tensor into patches."""
+        return F.split_into_patches(tensor, self.patch_size)
+
+    def __repr__(self) -> str:
+        """Get the string representation of the transform."""
+        return f"{self.__class__.__name__}(patch_size={self.patch_size})"
+
+
+class MergePatches:
+    """Merge the patches into a single tensor."""
+
+    def __call__(
+        self,
+        tensor: tuple[Tensor, Tensor],
+        _: TTFont,
+    ) -> tuple[Tensor, Tensor]:
+        """Merge the patches into a single tensor."""
+        return F.merge_patches(tensor)
+
+    def __repr__(self) -> str:
+        """Get the string representation of the transform."""
+        return self.__class__.__name__ + "()"
+
+
 class TensorToSegment:
     """Convert a PyTorch tensor back to a glyph path."""
 
