@@ -117,3 +117,60 @@ def _pad_postscript_outline(
     )
 
     return padded_commands, padded_coordinates
+
+
+class MultiFontPatchedPostScriptCollate:
+    """Collate function wrapper for classification dataloaders with patches."""
+
+    def __init__(self, patch_len: int) -> None:
+        """Initialize the collate function with required patch length."""
+        self.patch_len = patch_len
+
+    def __call__(
+        self,
+        batch: list[tuple[tuple[Tensor, Tensor], int, int]],
+    ) -> tuple[tuple[Tensor, Tensor], Tensor, Tensor]:
+        """Collate function for dataloaders that pads the batch at the patch level."""
+        glyph, codepoint, font_index = zip(*batch, strict=True)
+        glyph_padded = _pad_patched_postscript_outline(glyph, self.patch_len)
+        return glyph_padded, torch.tensor(codepoint), torch.tensor(font_index)
+
+
+def _pad_patched_postscript_outline(
+    data: list[tuple[Tensor, Tensor]],
+    patch_len: int,
+) -> tuple[Tensor, Tensor]:
+    """Pad patched command sequences and coordinates to the same number of patches.
+
+    Each missing patch is replaced by a fully padded patch.
+
+    Args:
+        data: List of tuples (commands, coordinates).
+        patch_len: Fixed patch size.
+
+    Returns:
+        - Padded command sequences of shape [batch_size, max_patches, patch_len].
+        - Padded coordinate sequences of shape [batch_size, max_patches, patch_len, 6].
+
+    """
+    commands, coordinates = zip(*data, strict=True)
+    max_patches = max(cmd.size(0) for cmd in commands)
+    batch_size = len(commands)
+
+    padded_commands = torch.full(
+        (batch_size, max_patches, patch_len),
+        POSTSCRIPT_COMMAND_TYPE_TO_NUM["<pad>"],
+        dtype=torch.int64,
+    )
+    padded_coordinates = torch.full(
+        (batch_size, max_patches, patch_len, 6),
+        -1.0,
+        dtype=torch.float32,
+    )
+
+    for i, (cmd, coord) in enumerate(zip(commands, coordinates, strict=True)):
+        num_patches = cmd.size(0)
+        padded_commands[i, :num_patches] = cmd
+        padded_coordinates[i, :num_patches] = coord
+
+    return padded_commands, padded_coordinates
