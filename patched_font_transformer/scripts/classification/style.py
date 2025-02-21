@@ -1,6 +1,10 @@
 """Main script for training the FontClassifier model."""
 
+import argparse
+import warnings
+
 import pytorch_lightning as pl
+import torch
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
 from pytorch_lightning.callbacks import (
@@ -10,6 +14,10 @@ from pytorch_lightning.callbacks import (
 
 from patched_font_transformer.lightning.data_modules import MultiFontLDM
 from patched_font_transformer.lightning.modules import ClassifierLM
+
+warnings.filterwarnings("ignore")
+
+torch.set_float32_matmul_precision("medium")
 
 
 def style_classifier(
@@ -61,11 +69,11 @@ def style_classifier(
 
     model = ClassifierLM(
         num_layers=3,
-        emb_size=256,
+        emb_size=128,
         patch_len=patch_size,
-        nhead=8,
+        nhead=4,
         class_labels=class_labels,
-        dim_feedforward=512,
+        dim_feedforward=256,
         dropout=0.1,
         lr=0.01,
         warmup_steps=256,
@@ -89,3 +97,17 @@ def style_classifier(
     trainer.fit(model, datamodule=data_module)
 
     trainer.test(ckpt_path="best", datamodule=data_module)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train the FontClassifier model.")
+    parser.add_argument(
+        "--patch_size",
+        type=int,
+        default=1,
+        help="Patch size for the classifier (default: 1).",
+    )
+
+    args = parser.parse_args()
+
+    style_classifier(patch_size=args.patch_size)
