@@ -1,11 +1,9 @@
 """Font classifier model using CLS token."""
 
-from typing import Literal
-
 import torch
 from torch import Tensor, nn
 
-from patched_font_transformer.modules.embedding import SegmentEmbedding
+from patched_font_transformer.modules.embedding import PatchedSegmentEmbedding
 from patched_font_transformer.modules.positional_encoding import (
     LearnedPositionalEncoding,
 )
@@ -22,7 +20,6 @@ class FontClassifier(nn.Module):
         num_classes: int,
         dim_feedforward: int = 512,
         dropout: float = 0.1,
-        outline_format: Literal["truetype", "postscript"] = "postscript",
     ) -> None:
         """Initialize the FontClassifier model."""
         super().__init__()
@@ -39,10 +36,9 @@ class FontClassifier(nn.Module):
             ),
             num_layers=num_layers,
         )
-        self.src_tok_emb = SegmentEmbedding(
+        self.src_tok_emb = PatchedSegmentEmbedding(
             emb_size,
             dropout=dropout,
-            outline_format=outline_format,
         )
         self.positional_encoding = LearnedPositionalEncoding(emb_size, dropout=dropout)
         self.classifier = nn.Sequential(

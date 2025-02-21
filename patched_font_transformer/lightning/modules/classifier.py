@@ -1,7 +1,6 @@
 """PyTorch Lightning Module for training FontClassifier models."""
 
 from pathlib import Path
-from typing import Literal
 
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
@@ -18,7 +17,7 @@ from sklearn.metrics import (
 from torch import Tensor
 
 from patched_font_transformer.models import FontClassifier
-from patched_font_transformer.modules.mask import classification_mask
+from patched_font_transformer.modules.mask import patched_classification_mask
 from patched_font_transformer.modules.scheduler import WarmupDecayLR
 
 
@@ -35,13 +34,11 @@ class ClassifierLM(pl.LightningModule):
         dropout: float = 0.1,
         lr: float = 0.001,  # noqa: ARG002
         warmup_steps: int = 250,  # noqa: ARG002
-        outline_format: Literal["truetype", "postscript"] = "postscript",
     ) -> None:
         """Initialize the module with the given hyperparameters.
 
         Args:
             model: Type of model to use for classification.
-            outline_format: Format of the font outlines.
             num_layers: Number of encoder layers in the model.
             emb_size: Embedding size for the model.
             nhead: Number of attention heads.
@@ -62,7 +59,6 @@ class ClassifierLM(pl.LightningModule):
             num_classes=len(class_labels),
             dim_feedforward=dim_feedforward,
             dropout=dropout,
-            outline_format=outline_format,
         )
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
@@ -75,7 +71,7 @@ class ClassifierLM(pl.LightningModule):
         src: tuple[Tensor, Tensor],
     ) -> Tensor:
         """Perform a forward pass through the FontClassifier."""
-        src_mask, src_padding_mask = classification_mask(src)
+        src_mask, src_padding_mask = patched_classification_mask(src)
 
         return self.model(
             src=src,

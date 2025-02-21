@@ -119,6 +119,31 @@ def classification_mask(
     return src_mask, src_padding_mask
 
 
+def patched_classification_mask(
+    src: tuple[Tensor, Tensor],
+) -> tuple[Tensor | None, Tensor]:
+    """Create masks for the first token of each patch for classification tasks.
+
+    Args:
+        src (tuple[Tensor, Tensor]): Source tuple (commands, coords)
+            - Commands: [batch_size, num_patches, patch_len]
+            - Coords: [batch_size, num_patches, patch_len, coord_dim]
+
+    Returns:
+        tuple[Tensor | None, Tensor]: (src_mask, src_padding_mask)
+            - src_mask: Always None (unless needed)
+            - src_padding_mask: [batch_size, num_patches]
+                (mask for the first token of each patch)
+
+    """
+    commands, coords = src
+
+    first_commands = commands[:, :, 0]
+    first_coords = coords[:, :, 0]
+
+    return classification_mask((first_commands, first_coords))
+
+
 def autoregressive_autoencoder_masks(
     src: tuple[Tensor, Tensor],
     tgt: tuple[Tensor, Tensor],
