@@ -28,6 +28,7 @@ class ClassifierLM(pl.LightningModule):
         self,
         num_layers: int,
         emb_size: int,
+        patch_len: int,
         nhead: int,
         class_labels: list[str],
         dim_feedforward: int = 512,
@@ -41,6 +42,7 @@ class ClassifierLM(pl.LightningModule):
             model: Type of model to use for classification.
             num_layers: Number of encoder layers in the model.
             emb_size: Embedding size for the model.
+            patch_len: Length of the patches to extract from the input.
             nhead: Number of attention heads.
             class_labels: List of class labels for the classifier.
             dim_feedforward: Dimension of the feedforward layer.
@@ -55,6 +57,7 @@ class ClassifierLM(pl.LightningModule):
         self.model = FontClassifier(
             num_layers=num_layers,
             emb_size=emb_size,
+            patch_len=patch_len,
             nhead=nhead,
             num_classes=len(class_labels),
             dim_feedforward=dim_feedforward,

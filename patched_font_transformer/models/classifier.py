@@ -16,6 +16,7 @@ class FontClassifier(nn.Module):
         self,
         num_layers: int,
         emb_size: int,
+        patch_len: int,
         nhead: int,
         num_classes: int,
         dim_feedforward: int = 512,
@@ -38,6 +39,7 @@ class FontClassifier(nn.Module):
         )
         self.src_tok_emb = PatchedSegmentEmbedding(
             emb_size,
+            patch_len=patch_len,
             dropout=dropout,
         )
         self.positional_encoding = LearnedPositionalEncoding(emb_size, dropout=dropout)
