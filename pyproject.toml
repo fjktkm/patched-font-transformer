@@ -17,6 +17,7 @@ dependencies = [
 ]
 
 [tool.uv]
+link-mode = "copy"
 index-strategy = "unsafe-best-match"
 extra-index-url = [
     "https://pypi.org/simple",
